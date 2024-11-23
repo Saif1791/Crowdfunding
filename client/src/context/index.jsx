@@ -11,23 +11,27 @@ export const StateContextProvider = ({ children }) => {
   const address = useAddress();
   const connect = useMetamask();
 
-  // Set up ethers.js provider and contract
-  const provider = new ethers.providers.Web3Provider(window.ethereum);
-  const signer = provider.getSigner();
-  const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, signer);
+  const getContract = () => {
+    if (!address) {
+      // throw new Error("Wallet is not connected");
+      alert("Wallet is not connected");
+    }
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const signer = provider.getSigner();
+    return new ethers.Contract(CONTRACT_ADDRESS, contractABI, signer);
+  };
 
-  // Function to publish a campaign
   const publishCampaign = async (form) => {
     try {
+      const contract = getContract();
       const transaction = await contract.createCampaign(
-        address, // owner
-        form.title, // title
-        form.description, // description
+        address,
+        form.title,
+        form.description,
         form.target,
-        new Date(form.deadline).getTime(), // deadline
-        form.image // image
+        new Date(form.deadline).getTime(),
+        form.image
       );
-
       await transaction.wait();
       console.log("Campaign created successfully");
     } catch (error) {
@@ -35,11 +39,11 @@ export const StateContextProvider = ({ children }) => {
     }
   };
 
-  // Function to get all campaigns
   const getCampaigns = async () => {
     try {
+      const contract = getContract();
       const campaigns = await contract.getCampaigns();
-      const parsedCampaigns = campaigns.map((campaign, i) => ({
+      return campaigns.map((campaign, i) => ({
         owner: campaign.owner,
         title: campaign.title,
         description: campaign.description,
@@ -51,7 +55,6 @@ export const StateContextProvider = ({ children }) => {
         image: campaign.image,
         pId: i,
       }));
-      return parsedCampaigns;
     } catch (error) {
       console.error("Failed to fetch campaigns:", error);
     }
